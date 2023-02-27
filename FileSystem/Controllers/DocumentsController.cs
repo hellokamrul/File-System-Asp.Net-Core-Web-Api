@@ -7,9 +7,11 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using FileSystem.Models;
 using Microsoft.AspNetCore.StaticFiles;
+using Microsoft.AspNetCore.Cors;
 
 namespace FileSystem.Controllers
 {
+    [EnableCors]
     [Route("api/[controller]")]
     [ApiController]
     public class DocumentsController : ControllerBase
@@ -23,14 +25,21 @@ namespace FileSystem.Controllers
             _webHostEnvironment = webHostEnvironment;
         }
 
-        // GET: api/Documents
+        
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Document>>> GetDocuments()
         {
             return await _context.Documents.ToListAsync();
         }
+        [HttpGet]
+        [Route("User/{uid}")]
+        public List<Document> GetDocumentById(int uid)
+        {
+            var documents = _context.Documents.Where(x => x.Uid == uid).ToList();
+            return documents;
+        }
 
-        // GET: api/Documents/5
+
         [HttpGet("{id}")]
         public async Task<ActionResult<Document>> GetDocument(int id)
         {
@@ -44,8 +53,7 @@ namespace FileSystem.Controllers
             return document;
         }
 
-        // PUT: api/Documents/5
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
+       
         [HttpPut("{id}")]
         public async Task<IActionResult> PutDocument(int id, Document document)
         {
@@ -75,8 +83,7 @@ namespace FileSystem.Controllers
             return NoContent();
         }
 
-        // POST: api/Documents
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
+       
         [HttpPost]
         public async Task<ActionResult<Document>> PostDocument(Document document)
         {
@@ -86,12 +93,28 @@ namespace FileSystem.Controllers
             return CreatedAtAction("GetDocument", new { id = document.Id }, document);
         }
 
+        [HttpGet]
+        [Route("getfilenames")]
+        public IActionResult GetFileNames()
+        {
+            Console.WriteLine(_webHostEnvironment.WebRootPath);
+            var files = Directory.GetFiles("D:\\ASP.Net Core\\New folder (4)\\FileSystem\\FileSystem\\App_Data");
+
+            var fileNames = new List<string>();
+
+            foreach (var file in files)
+            {
+                fileNames.Add(Path.GetFileName(file));
+            }
+
+            return Ok(fileNames);
+        }
 
         [HttpPost]
         [Route("upload")]
         public async Task<ActionResult> Upload(List<IFormFile> files)
         {
-            //int size = files.Sum()
+           
             long size = files.Sum(f => f.Length);
             var rootPath = Path.Combine(_webHostEnvironment.ContentRootPath, "Resources", "Documents");
 
@@ -122,6 +145,38 @@ namespace FileSystem.Controllers
             return Ok(new { count = files.Count, size });
 
         }
+
+        [HttpPost]
+        [Route("uploadfile")]
+        public async Task<IActionResult> UploadFile()
+        {
+            try
+            {
+                var httpRequest = HttpContext.Request;
+                if (httpRequest.Form.Files.Count > 0)
+                {
+                    var file = httpRequest.Form.Files[0];
+                    var filePath = Path.Combine(_webHostEnvironment.ContentRootPath, "App_Data", file.FileName);
+                    using (var stream = new FileStream(filePath, FileMode.Create))
+                    {
+                        await file.CopyToAsync(stream);
+                    }
+                    return Ok();
+                }
+                else
+                {
+                    return BadRequest("No file uploaded.");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Exception: {ex.Message}");
+                return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while uploading the file.");
+            }
+        }
+
+
+
         [HttpPost]
         [Route("download/{id}")]
         public async Task<ActionResult> Download(int id)
@@ -153,7 +208,7 @@ namespace FileSystem.Controllers
             return File(fileBytes, contentType, document.FileName);
         }
 
-        // DELETE: api/Documents/5
+        
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteDocument(int id)
         {

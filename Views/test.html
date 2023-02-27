@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>File Upload Form</title>
+  <style>
+    body {
+      background-color: #f2f2f2;
+    }
+
+    form {
+      background-color: #ffffff;
+      border: 1px solid #cccccc;
+      border-radius: 5px;
+      margin: 50px auto;
+      max-width: 500px;
+      padding: 20px;
+    }
+
+    h2 {
+      color: #428bca;
+      text-align: center;
+    }
+
+    label {
+      display: block;
+      font-size: 18px;
+      margin-bottom: 10px;
+    }
+
+    input[type=file] {
+      font-size: 16px;
+      padding: 5px;
+    }
+
+    input[type=submit] {
+      background-color: #428bca;
+      border: none;
+      border-radius: 5px;
+      color: #ffffff;
+      cursor: pointer;
+      font-size: 18px;
+      padding: 10px 20px;
+      margin-top: 20px;
+    }
+
+    input[type=submit]:hover {
+      background-color: #3071a9;
+    }
+  </style>
+</head>
+<body>
+  <form>
+    <h2>Upload a File</h2>
+    <label for="file">Choose a file:</label>
+    <input type="file" name="file" id="file">
+    <input type="button" value="Upload File" onclick="uploadFile()">
+  </form>
+
+  <ul id="file-list">
+</ul>
+
+<script>
+    fetch('https://localhost:7012/api/Documents/getfilenames')
+        .then(response => response.json())
+        .then(fileNames => {
+            const fileList = document.getElementById('file-list');
+            fileNames.forEach(fileName => {
+                const li = document.createElement('li');
+                li.innerText = fileName;
+                const a = document.createElement('a');
+                a.href = 'download' + fileName;
+                a.download = fileName;
+                a.innerText = ' Download';
+                li.appendChild(a);
+                fileList.appendChild(li);
+            });
+        })
+        .catch(error => console.error(error));
+</script>
+
+  <script>
+    function uploadFile() {
+      var file = document.getElementById("file").files[0];
+      var formData = new FormData();
+      formData.append("file", file);
+      
+      var xhr = new XMLHttpRequest();
+      xhr.open("POST", "https://localhost:7012/api/Documents/uploadfile");
+      xhr.send(formData);
+    }
+  </script>
+</body>
+</html>
